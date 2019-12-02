@@ -1,11 +1,12 @@
 ---
-title: "R Notebook"
+title: "Gibbs Sampler Example Usages"
 output: html_notebook
 ---
 
 ```{r}
 library(latex2exp)
 library(tidyverse)
+source("samplers.R")
 ```
 
 
