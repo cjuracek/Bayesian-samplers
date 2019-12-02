@@ -1,6 +1,6 @@
 library(MASS)
 
-# Helper functions for MVN sampler
+# 2 helper functions for MVN sampler
 compute_mu_n <- function(lambda_0, n, sigma, mu_0, y_bar) {
   lambda_0_inv <- solve(lambda_0)
   sigma_inv <- solve(sigma)
@@ -9,6 +9,14 @@ compute_mu_n <- function(lambda_0, n, sigma, mu_0, y_bar) {
   second_factor <- lambda_0_inv %*% mu_0 + n * sigma_inv %*% y_bar
   
   return(first_factor %*% second_factor)
+}
+
+compute_S_n <- function(Y, theta, S_0) {
+  S_theta <- matrix(0, ncol(Y), ncol(Y))
+  for(i in 1:nrow(Y)) {
+    S_theta <- S_theta + (Y[i, ] - theta) %*% t(Y[i, ] - theta)
+  }
+  return(S_0 + S_theta)
 }
 
 # Gibbs sampler for MCMC approximation of mean, covariance of multivariate normal
@@ -29,21 +37,17 @@ gibbs_mvn <- function(Y, num_iter = 10000,
   sigmas <- rep(list(matrix(NA, p, p)), num_iter)
   y_bar <- matrix(apply(Y, 2, mean), p, 1)
   
-  # Initial 
+  # Initial theta value for chain
   thetas[1,] <- mu_0
   for(i in seq_len(num_iter - 1)) {
     
     # Update Sigma via full conditional
-    S_theta <- matrix(0, p, p)
-    for(i in seq_len(n)) {
-      S_theta <- S_theta + (Y[i, ] - thetas[i,]) %*% t(Y[i, ] - thetas[i,])
-    }
-    S_n <- S_0 + S_theta
+    S_n <- compute_S_n(Y, thetas[i,], S_0)
     sigmas[[i + 1]] <- solve(rWishart(1, nu_0 + n, solve(S_n))[,,1])
     
     # Update theta via full conditional
     mu_n <- compute_mu_n(Lambda_0, n, sigmas[[i + 1]], mu_0, y_bar)
-    Lamda_n <- solve(solve(Lambda_0) + n * solve(sigmas[[i + 1]]))
+    Lambda_n <- solve(solve(Lambda_0) + n * solve(sigmas[[i + 1]]))
     thetas[i + 1,] <- mvrnorm(1, mu_n, Lambda_n)
     
   }
