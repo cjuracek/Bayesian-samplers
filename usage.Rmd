@@ -1,0 +1,15 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Using the Multivariate Normal Gibbs Sampler
+
+```{r}
+y_blue <- as.matrix(read.table("data/bluecrab.dat"))
+y_orange <-  as.matrix(read.table("data/orangecrab.dat"))
+
+post_blue <- gibbs_mvn(y_blue, num_iter = num_iter)
+post_orange <- gibbs_mvn(y_orange, num_iter = num_iter)
+```
+
