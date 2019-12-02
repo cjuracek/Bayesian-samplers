@@ -1,5 +1,29 @@
 library(MASS)
 
+# 3 helper functions for MVN sampler
+compute_mu_n <- function(lambda_0, n, sigma, mu_0, y_bar) {
+  lambda_0_inv <- solve(lambda_0)
+  sigma_inv <- solve(sigma)
+  
+  first_factor <- (lambda_0_inv + n * sigma_inv) %>% solve()
+  second_factor <- lambda_0_inv %*% mu_0 + n * sigma_inv %*% y_bar
+  
+  return(first_factor %*% second_factor)
+}
+
+compute_lambda_n <- function(lambda_0, n, sigma) {
+  lambda_n <- (solve(lambda_0) + n * solve(sigma)) %>% solve()
+  return(lambda_n)
+}
+
+compute_S_n <- function(Y, theta, S_0) {
+  S_theta <- matrix(0, ncol(Y), ncol(Y))
+  for(i in 1:nrow(Y)) {
+    S_theta <- S_theta + (Y[i, ] - theta) %*% t(Y[i, ] - theta)
+  }
+  return(S_0 + S_theta)
+}
+
 # Gibbs sampler for MCMC approximation of mean, covariance of multivariate normal
 # Based off of algorithm in Hoff, page 112
 #   nu_0, S_0: hyperparameters for covariance
