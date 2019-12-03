@@ -92,6 +92,9 @@ sample_theta_full <- function(data, sizes, avgs,
   return(rnorm(length(data), theta_mean, sqrt(theta_var)))
 }
 
+# Uses Gibbs sampling to produce MCMC approximations 
+# to full joint posterior distribution of hierarchical normal model
+# Reference: Hoff, Chapter 8
 # Data: List of groups
 # Takes an initial state:
 #   - theta_1 - theta_m: group means
@@ -112,30 +115,30 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
   group_avgs <- sapply(data, mean)
   
   m <- length(data)
-  theta <- list(); sigma_sq <- numeric(num_iter)
+  theta <- matrix(0, num_iter, m); sigma_sq <- numeric(num_iter)
   mu <- numeric(num_iter); tau_sq <- numeric(num_iter)
   
   # Define 1st value in chain
-  theta[[1]] <- group_avgs
+  theta[1,] <- group_avgs
   sigma_sq[1] <- sigma_0_sq
   mu[1] <- mu_0
   tau_sq[1] <- tau_0_sq
   
   for(i in 2:num_iter) {
     # Update mu
-    mu[i] <- sample_mu_full(m, mean(theta[[i - 1]]), 
+    mu[i] <- sample_mu_full(m, mean(theta[i - 1,]), 
                             tau_sq[i - 1], mu_0, gamma_0_sq)
     
     # Update tau_sq
     tau_sq[i] <- sample_tau_sq_full(eta_0, m, tau_0_sq,
-                                    theta[[i - 1]], mu[i])
+                                    theta[i - 1,], mu[i])
     
     # Update sigma_sq
     sigma_sq[i] <- sample_sigma_sq_full(data, nu_0, num_obs,
-                                        sigma_0_sq, theta[[i - 1]])
+                                        sigma_0_sq, theta[i - 1,])
     
     # Update thetas
-    theta[[i]] <- sample_theta_full(data = data, sizes = group_sizes, avgs = group_avgs,
+    theta[i,] <- sample_theta_full(data = data, sizes = group_sizes, avgs = group_avgs,
                                     sigma_sq[i], mu[i], tau_sq[i])
   }
   
