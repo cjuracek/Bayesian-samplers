@@ -145,3 +145,25 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
   
   return(list(theta = theta, sigma_sq = sigma_sq, mu = mu, tau_sq = tau_sq))
 }
+
+################################################################################
+
+# Uses a Metropolis-Hastings algorithm to produce approximations
+# of the joint posterior (theta, sigma, and beta's).
+# Reference: Hoff, page 203
+# Parameters:
+#   mu_0, Lambda_0: Hyperparameters for theta
+#   nu_0, S_0: Hyperparameters for Sigma
+mh_mixed_logistic <- function(mu_0, Lambda_0, 
+                              nu_0, S_0, num_iter = 10000) {
+  
+  for(s in seq_len(num_iter - 1)) {
+    
+    # Update theta via its full conditonal
+    
+    # Update Sigma via its full conditional
+    
+    # Update Beta's
+  }
+  
+}
