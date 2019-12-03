@@ -152,14 +152,20 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 # of the joint posterior (theta, sigma, and beta's).
 # Reference: Hoff, page 203
 # Parameters:
+#   group: Which variable should be used for groups?
 #   mu_0, Lambda_0: Hyperparameters for theta
 #   nu_0, S_0: Hyperparameters for Sigma
-mh_mixed_logistic <- function(mu_0, Lambda_0, 
+mh_mixed_logistic <- function(data, group, mu_0, Lambda_0, 
                               nu_0, S_0, num_iter = 10000) {
   
+  thetas <- numeric(num_iter); Sigma <- numeric(num_iter)
+  m <- data[group]
   for(s in seq_len(num_iter - 1)) {
     
     # Update theta via its full conditonal
+    Lambda_m <- 
+    mu_m <- 
+    theta[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
     
     # Update Sigma via its full conditional
     

@@ -42,3 +42,9 @@ post <- gibbs_hierarchical(school_data, mu_0 = mu_0, gamma_0_sq = 5,
                            sigma_0_sq = sig_0_sq, nu_0 = nu_0, num_iter = 1000)
 ```
 
+## Using the Mixed Effect Logistic Regression Sampler
+
+```{r}
+math_data <- read.table("data/mathstandard.dat", header = TRUE)
+```
+
