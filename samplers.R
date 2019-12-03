@@ -124,22 +124,23 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
   mu[1] <- mu_0
   tau_sq[1] <- tau_0_sq
   
-  for(i in 2:num_iter) {
-    # Update mu
-    mu[i] <- sample_mu_full(m, mean(theta[i - 1,]), 
-                            tau_sq[i - 1], mu_0, gamma_0_sq)
+  for(s in seq_len(num_iter - 1)) {
     
-    # Update tau_sq
-    tau_sq[i] <- sample_tau_sq_full(eta_0, m, tau_0_sq,
-                                    theta[i - 1,], mu[i])
+    # Update mu from full conditional
+    mu[s + 1] <- sample_mu_full(m, mean(theta[s,]), 
+                            tau_sq[s], mu_0, gamma_0_sq)
     
-    # Update sigma_sq
-    sigma_sq[i] <- sample_sigma_sq_full(data, nu_0, num_obs,
-                                        sigma_0_sq, theta[i - 1,])
+    # Update tau_sq from full conditional
+    tau_sq[s + 1] <- sample_tau_sq_full(eta_0, m, tau_0_sq,
+                                    theta[s,], mu[s + 1])
     
-    # Update thetas
-    theta[i,] <- sample_theta_full(data = data, sizes = group_sizes, avgs = group_avgs,
-                                    sigma_sq[i], mu[i], tau_sq[i])
+    # Update sigma_sq...
+    sigma_sq[s + 1] <- sample_sigma_sq_full(data, nu_0, num_obs,
+                                        sigma_0_sq, theta[s,])
+    
+    # Update thetas...
+    theta[s + 1,] <- sample_theta_full(data = data, sizes = group_sizes, avgs = group_avgs,
+                                    sigma_sq[s + 1], mu[s + 1], tau_sq[s + 1])
   }
   
   return(list(theta = theta, sigma_sq = sigma_sq, mu = mu, tau_sq = tau_sq))
