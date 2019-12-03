@@ -31,3 +31,14 @@ orange_theta_plot <- ggplot(data.frame(post_orange$theta), aes(x = X1, y = X2)) 
 grid.arrange(blue_theta_plot, orange_theta_plot, ncol = 2, nrow = 1)
 ```
 
+## Using the Hierarchical Normal Gibbs Sampler
+
+```{r}
+filenames <- sapply(1:8, function(x) paste0("data/school", x, ".dat"))
+school_data <- sapply(filenames, scan, quiet = TRUE)
+
+post <- gibbs_hierarchical(school_data, mu_0 = mu_0, gamma_0_sq = 5, 
+                           tau_0_sq = tau_0_sq, eta_0 = eta_0, 
+                           sigma_0_sq = sig_0_sq, nu_0 = nu_0, num_iter = 1000)
+```
+
