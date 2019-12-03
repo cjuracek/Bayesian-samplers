@@ -54,3 +54,90 @@ gibbs_mvn <- function(Y, num_iter = 10000,
   
   return(list(theta = thetas, sigma = sigmas))
 }
+
+##################################################################################################################
+
+# Sample a value of mu from its full conditional (normal) in the hierarchical normal model
+sample_mu_full <- function(m, theta_bar, tau_sq, mu_0, gamma_0_sq) {
+  mu_mean <- ((m * theta_bar) / tau_sq + mu_0 / gamma_0_sq) / ((m / tau_sq) + (1 / gamma_0_sq))
+  mu_var <- 1 / ((m / tau_sq) + (1 / gamma_0_sq))
+  return(rnorm(1, mu_mean, sqrt(mu_var)))
+}
+
+# Sample a value of mu from its full conditional (gamma) in the hierarchical normal model
+# Remember, the precision follows a gamma, so take reciprocal at the end.
+sample_tau_sq_full <- function(eta_0, m, tau_0_sq, theta, mu) {
+  a <- (eta_0 + m) / 2
+  b <- (eta_0 * tau_0_sq + sum((theta - mu) ^ 2)) / 2
+  return(1 / rgamma(1, a, b))
+}
+
+# Sample a value of sigma squared from its full conditional in the hierarchical normal model.
+# Remember, the precision follows a gamma, so take reciprocal at the end
+sample_sigma_sq_full <- function(data, nu_0, num_obs, sigma_0_sq, theta) {
+  total_ssr <- 0
+  for(i in seq_along(data)) {
+    total_ssr <- total_ssr + sum((data[[i]] - theta[i]) ^ 2)
+  }
+  a <- (nu_0 + num_obs) / 2
+  b <- (nu_0 * sigma_0_sq + total_ssr) / 2
+  return(1 / rgamma(1, a, b))
+}
+
+# Sample theta's from their respective full conditionals in the hierarchical normal model.
+sample_theta_full <- function(data, sizes, avgs, 
+                              sigma_sq, mu, tau_sq) {
+  theta_mean <- ((sizes * avgs) / sigma_sq + mu / tau_sq) / (sizes / sigma_sq + 1 / tau_sq)
+  theta_var <- 1 / (sizes / sigma_sq + 1 / tau_sq)
+  return(rnorm(length(data), theta_mean, sqrt(theta_var)))
+}
+
+# Data: List of groups
+# Takes an initial state:
+#   - theta_1 - theta_m: group means
+#   - mu: mean of sampling distribution of theta's
+#   - tau_sq: between school variance
+#   - sigma_sq: within school variance
+# and prior parameters. Uses Gibbs sampling to produce MCMC approximations 
+# to full joint posterior distribution.
+# Returns: named list of posterior approximations for theta's,
+#   sigma_sq, mu, and tau
+gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
+                               eta_0, sigma_0_sq, nu_0,
+                               num_iter = 5000) {
+  
+  # Compute convenient invariant information
+  num_obs <- length(unlist(data))
+  group_sizes <- sapply(data, length)
+  group_avgs <- sapply(data, mean)
+  
+  m <- length(data)
+  theta <- list(); sigma_sq <- numeric(num_iter)
+  mu <- numeric(num_iter); tau_sq <- numeric(num_iter)
+  
+  # Define 1st value in chain
+  theta[[1]] <- group_avgs
+  sigma_sq[1] <- sigma_0_sq
+  mu[1] <- mu_0
+  tau_sq[1] <- tau_0_sq
+  
+  for(i in 2:num_iter) {
+    # Update mu
+    mu[i] <- sample_mu_full(m, mean(theta[[i - 1]]), 
+                            tau_sq[i - 1], mu_0, gamma_0_sq)
+    
+    # Update tau_sq
+    tau_sq[i] <- sample_tau_sq_full(eta_0, m, tau_0_sq,
+                                    theta[[i - 1]], mu[i])
+    
+    # Update sigma_sq
+    sigma_sq[i] <- sample_sigma_sq_full(data, nu_0, num_obs,
+                                        sigma_0_sq, theta[[i - 1]])
+    
+    # Update thetas
+    theta[[i]] <- sample_theta_full(data = data, sizes = group_sizes, avgs = group_avgs,
+                                    sigma_sq[i], mu[i], tau_sq[i])
+  }
+  
+  return(list(theta = theta, sigma_sq = sigma_sq, mu = mu, tau_sq = tau_sq))
+}
