@@ -158,12 +158,15 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 mh_mixed_logistic <- function(data, group, mu_0, Lambda_0, 
                               nu_0, S_0, num_iter = 10000) {
   
-  thetas <- numeric(num_iter); Sigma <- numeric(num_iter)
-  m <- data[group]
+  # Assuming 1 col for response, 1 col for group, rest for prediction
+  p <- ncol(data) - 2
+  thetas <- matrix(nrow = num_iter, ncol = p) 
+  Sigmas <- rep(list(matrix(NA, p, p)), num_iter)
+  m <- data[group] %>% unique() %>% length()
   for(s in seq_len(num_iter - 1)) {
     
     # Update theta via its full conditonal
-    Lambda_m <- 
+    Lambda_m <- solve(solve(Lambda_0) + m * solve(Sigma[[s]]))
     mu_m <- 
     theta[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
     
