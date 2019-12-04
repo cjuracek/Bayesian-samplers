@@ -160,14 +160,20 @@ mh_mixed_logistic <- function(data, group, mu_0, Lambda_0,
   
   # Assuming 1 col for response, 1 col for group, rest for prediction
   p <- ncol(data) - 2
-  thetas <- matrix(nrow = num_iter, ncol = p) 
-  Sigmas <- rep(list(matrix(NA, p, p)), num_iter)
   m <- data[group] %>% unique() %>% length()
+  
+  thetas <- matrix(nrow = num_iter, ncol = p + 1) 
+  Sigmas <- rep(list(matrix(NA, p + 1, p + 1)), num_iter)
+  betas <- matrix(nrow = m, ncol = p + 1)
+  
+  # Useful invariant information
+  Lambda_0_inv <- solve(Lambda_0)
+  
   for(s in seq_len(num_iter - 1)) {
     
     # Update theta via its full conditonal
-    Lambda_m <- solve(solve(Lambda_0) + m * solve(Sigma[[s]]))
-    mu_m <- 
+    Lambda_m <- solve(Lambda_0_inv + m * solve(Sigmas[[s]]))
+    mu_m <- Lambda_m %*% (Lambda_0_inv %*% mu_0 + m * solve(Sigmas[[s]]) %*% matrix(colMeans(betas)))
     theta[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
     
     # Update Sigma via its full conditional
