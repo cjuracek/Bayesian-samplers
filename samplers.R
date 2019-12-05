@@ -153,14 +153,18 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 # Reference: Hoff, page 203
 # Parameters:
 #   group: Which variable should be used for groups?
+#   response: What is the response variable?
 #   mu_0, Lambda_0: Hyperparameters for theta
 #   eta_0, S_0: Hyperparameters for Sigma
-mh_mixed_logistic <- function(data, group, mu_0, Lambda_0, 
-                              eta_0, S_0, num_iter = 10000) {
+#   tau: Proposal variance for betas
+mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0, 
+                              eta_0, S_0, 
+                              tau = 1.5, num_iter = 10000) {
   
   # Assuming 1 col for response, 1 col for group, rest for prediction
+  groups <- data[group] %>% unique()
+  m <- length(groups)
   p <- ncol(data) - 2
-  m <- data[group] %>% unique() %>% length()
   
   thetas <- matrix(nrow = num_iter, ncol = p + 1) 
   Sigmas <- rep(list(matrix(NA, p + 1, p + 1)), num_iter)
@@ -181,6 +185,19 @@ mh_mixed_logistic <- function(data, group, mu_0, Lambda_0,
     Sigmas[[s + 1]] <- solve(rWishart(1, eta_0 + m, solve(S_0 + S_theta))[,,1])
     
     # Update Beta's
+    for(j in seq_len(m)) {
+      y_j <- data %>% filter(group == groups[j]) %>% select(response)
+      x_j <- data %>% filter(group == group[j]) %>% select("percentms")
+      
+      # Proposal
+      beta_star <- mvrnorm(1, betas[j,], tau * Sigmas[[s + 1]])
+      
+      # Calculate acceptance rate
+      
+      
+      # Update if appropriate
+      betas[s + 1,] <- ifelse(log(runif(1)) < log_r, beta_star, betas[s,])
+    }
   }
   
 }
