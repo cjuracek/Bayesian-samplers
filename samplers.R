@@ -154,9 +154,9 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 # Parameters:
 #   group: Which variable should be used for groups?
 #   mu_0, Lambda_0: Hyperparameters for theta
-#   nu_0, S_0: Hyperparameters for Sigma
+#   eta_0, S_0: Hyperparameters for Sigma
 mh_mixed_logistic <- function(data, group, mu_0, Lambda_0, 
-                              nu_0, S_0, num_iter = 10000) {
+                              eta_0, S_0, num_iter = 10000) {
   
   # Assuming 1 col for response, 1 col for group, rest for prediction
   p <- ncol(data) - 2
@@ -177,6 +177,8 @@ mh_mixed_logistic <- function(data, group, mu_0, Lambda_0,
     theta[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
     
     # Update Sigma via its full conditional
+    S_theta <- apply(betas, 1, function(beta) (beta - thetas[s + 1,]) %*% t(beta - thetas[s + 1,])) %>% sum()
+    Sigmas[[s + 1]] <- solve(rWishart(1, eta_0 + m, solve(S_0 + S_theta))[,,1])
     
     # Update Beta's
   }
