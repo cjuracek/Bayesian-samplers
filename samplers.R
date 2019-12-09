@@ -148,6 +148,14 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 
 ################################################################################
 
+### log-density of the multivariate normal distribution (Fan Bu)
+ldmvnorm<-function(X,mu,Sigma,iSigma=solve(Sigma),dSigma=det(Sigma)) 
+{
+  Y<-t( t(X)-mu)
+  sum(diag(-.5*t(Y)%*%Y%*%iSigma)) - .5*(prod(dim(X))*log(2*pi) +
+                                           dim(X)[1]*log(dSigma))
+}
+
 # Uses a Metropolis-Hastings algorithm to produce approximations
 # of the joint posterior (theta, sigma, and beta's).
 # Reference: Hoff, page 203
@@ -178,12 +186,14 @@ mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0,
     # Update theta via its full conditonal
     Lambda_m <- solve(Lambda_0_inv + m * solve(Sigmas[[s]]))
     mu_m <- Lambda_m %*% (Lambda_0_inv %*% mu_0 + m * solve(Sigmas[[s]]) %*% matrix(colMeans(betas)))
-    theta[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
+    thetas[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
     
     # Update Sigma via its full conditional
     S_theta <- apply(betas, 1, function(beta) (beta - thetas[s + 1,]) %*% t(beta - thetas[s + 1,])) %>% sum()
-    Sigmas[[s + 1]] <- solve(rWishart(1, eta_0 + m, solve(S_0 + S_theta))[,,1])
+    Sigma_inv <- rWishart(1, eta_0 + m, solve(S_0 + S_theta))[,,1]
+    Sigmas[[s + 1]] <- solve(Sigma_inv)
     
+    det_Sigma <- det(Sigmas[[s + 1]])
     # Update Beta's
     for(j in seq_len(m)) {
       y_j <- data %>% filter(group == groups[j]) %>% select(response)
@@ -192,8 +202,12 @@ mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0,
       # Proposal
       beta_star <- mvrnorm(1, betas[j,], tau * Sigmas[[s + 1]])
       
-      # Calculate acceptance rate
-      
+      # Calculate acceptance rate (log ratio!)
+      # dbinom is actually the sum of several Bernouli variables
+      log_r <- sum(dbinom(y_j, 1, plogis(beta_star[1] + beta_star[2] * x_j), log = T) -
+                   dbinom(y_j, 1, plogis(betas[j, 1] + betas[j, 2] * x_j), log = T)) +
+               ldmvnorm(t(beta_star), thetas[s + 1], Sigmas[[s + 1]], iSigma = Sigma_inv, dSigma = det_Sigma) - 
+               ldmvnorm(t(beta_star), thetas[s + 1], Sigmas[[s + 1]], iSigma = Sigma_inv, dSigma = det_Sigma)
       
       # Update if appropriate
       betas[s + 1,] <- ifelse(log(runif(1)) < log_r, beta_star, betas[s,])
