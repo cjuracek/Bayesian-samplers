@@ -149,11 +149,12 @@ gibbs_hierarchical <- function(data, mu_0, gamma_0_sq, tau_0_sq,
 ################################################################################
 
 ### log-density of the multivariate normal distribution (Fan Bu)
-ldmvnorm<-function(X,mu,Sigma,iSigma=solve(Sigma),dSigma=det(Sigma)) 
-{
-  Y<-t( t(X)-mu)
-  sum(diag(-.5*t(Y)%*%Y%*%iSigma)) - .5*(prod(dim(X))*log(2*pi) +
-                                           dim(X)[1]*log(dSigma))
+ldmvnorm <- function(X, mu, Sigma, Sigma_inv = solve(Sigma), det_Sigma = det(Sigma)) {
+  Y <- t(t(X) - mu)
+  
+  return(sum(diag(-0.5 * t(Y) %*% Y %*% Sigma_inv)) - 
+         0.5 * (prod(dim(X)) * log(2 * pi) +
+         dim(X)[1] * log(det_Sigma))) 
 }
 
 # Uses a Metropolis-Hastings algorithm to produce approximations
@@ -206,12 +207,13 @@ mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0,
       # dbinom is actually the sum of several Bernouli variables
       log_r <- sum(dbinom(y_j, 1, plogis(beta_star[1] + beta_star[2] * x_j), log = T) -
                    dbinom(y_j, 1, plogis(betas[j, 1] + betas[j, 2] * x_j), log = T)) +
-               ldmvnorm(t(beta_star), thetas[s + 1], Sigmas[[s + 1]], iSigma = Sigma_inv, dSigma = det_Sigma) - 
-               ldmvnorm(t(betas[j,]), thetas[s + 1], Sigmas[[s + 1]], iSigma = Sigma_inv, dSigma = det_Sigma)
+               ldmvnorm(t(beta_star), thetas[s + 1], Sigmas[[s + 1]], Sigma_inv = Sigma_inv, det_Sigma = det_Sigma) - 
+               ldmvnorm(t(betas[j,]), thetas[s + 1], Sigmas[[s + 1]], Sigma_inv = Sigma_inv, det_Sigma = det_Sigma)
       
       # Update if appropriate
       betas[s + 1,] <- ifelse(log(runif(1)) < log_r, beta_star, betas[s,])
     }
   }
   
+  return(list(theta = thetas, sigma = Sigmas, beta = betas))
 }
