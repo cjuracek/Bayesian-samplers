@@ -46,5 +46,13 @@ post <- gibbs_hierarchical(school_data, mu_0 = mu_0, gamma_0_sq = 5,
 
 ```{r}
 math_data <- read.table("data/mathstandard.dat", header = TRUE)
+
+mu_0 <- matrix(c(-3.462, 0.050), 2, 1)
+eta_0 <- 4
+Lambda_0 <- matrix(c(10.755, -0.179, -0.179, 0.003), 2, 2)
+S_0 <- Lambda_0
+
+posterior <- mh_mixed_logistic(math_data, group = "county", response = "metstandard",
+                               mu_0 = mu_0, Lambda_0 = Lambda_0, eta_0 = eta_0, S_0 = S_0)
 ```
 
