@@ -1,4 +1,5 @@
 library(MASS)
+library(dplyr)
 
 # 2 helper functions for MVN sampler
 compute_mu_n <- function(lambda_0, n, sigma, mu_0, y_bar) {
@@ -169,25 +170,27 @@ ldmvnorm <- function(X, mu, Sigma, Sigma_inv = solve(Sigma), det_Sigma = det(Sig
 mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0, 
                               eta_0, S_0, 
                               tau = 1.5, num_iter = 10000) {
+  browser()
   
   # Assuming 1 col for response, 1 col for group, rest for prediction
-  groups <- data[group] %>% unique()
-  m <- length(groups)
+  groups <- data %>% pull(group) %>% unique()
+  m <- nlevels(groups)
   p <- ncol(data) - 2
   
   thetas <- matrix(nrow = num_iter, ncol = p + 1) 
   Sigmas <- rep(list(matrix(NA, p + 1, p + 1)), num_iter)
-  betas <- matrix(nrow = m, ncol = p + 1)
+  betas <- matrix(1, nrow = m, ncol = p + 1)
   
   # Useful invariant information
   Lambda_0_inv <- solve(Lambda_0)
   
+  Sigmas[[1]] <- S_0
   for(s in seq_len(num_iter - 1)) {
     
     # Update theta via its full conditonal
     Lambda_m <- solve(Lambda_0_inv + m * solve(Sigmas[[s]]))
     mu_m <- Lambda_m %*% (Lambda_0_inv %*% mu_0 + m * solve(Sigmas[[s]]) %*% matrix(colMeans(betas)))
-    thetas[s + 1] <- mvrnorm(1, mu_m, Lambda_m)
+    thetas[s + 1,] <- mvrnorm(1, mu_m, Lambda_m)
     
     # Update Sigma via its full conditional
     S_theta <- apply(betas, 1, function(beta) (beta - thetas[s + 1,]) %*% t(beta - thetas[s + 1,])) %>% sum()
@@ -198,7 +201,7 @@ mh_mixed_logistic <- function(data, group, response, mu_0, Lambda_0,
     # Update Beta's
     for(j in seq_len(m)) {
       y_j <- data %>% filter(group == groups[j]) %>% select(response)
-      x_j <- data %>% filter(group == group[j]) %>% select("percentms")
+      x_j <- data %>% filter(group == groups[j]) %>% select("percentms")
       
       # Proposal
       beta_star <- mvrnorm(1, betas[j,], tau * Sigmas[[s + 1]])
